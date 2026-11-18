@@ -21,7 +21,7 @@ The product's long-term functionality will be determined through research with a
 
 ## 3. Technology Stack
 
-- Backend: Python, Django
+- Backend: Python, Django 5.2.19 LTS
 - Frontend: HTML, CSS, Django Templates, vanilla JavaScript
 - Database: SQLite
 - Authentication: Django built-in authentication
@@ -115,6 +115,8 @@ The initial database must support:
 - Lesson topics
 - Meeting URLs
 
+In version 0.1, a student can be associated with at most one teacher and may temporarily have no teacher assigned.
+
 Use fictional test records only.
 
 ## 9. Future Features — Not Approved for Implementation
@@ -144,6 +146,7 @@ The initial version must not include:
 - Video conferencing functionality
 - Third-party calendar synchronization
 - Public account registration
+- Password reset
 - Production hosting
 - React or complex frontend frameworks
 
