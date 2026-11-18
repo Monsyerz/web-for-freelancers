@@ -53,3 +53,16 @@ After each task:
 
 ## Product Principle
 Solve actual user problems. Prioritize usability, simplicity and reducing administrative work over adding unnecessary features.
+
+## Git & Review Policy
+
+1. Never create Git commits without explicit developer approval.
+2. Never push, merge, rebase or delete branches without explicit approval.
+3. Show the developer a summary of all modified files after each task.
+4. All changes must be reviewed before committing.
+5. Implement new features on dedicated feature branches once the branching workflow is enabled.
+6. Codex will independently review code changes and run relevant tests before approval.
+7. The developer performs final manual verification before merging.
+8. Never merge unreviewed changes into main.
+9. Keep main stable and functional.
+10. Do not mark tasks as complete until the required review and acceptance criteria pass.

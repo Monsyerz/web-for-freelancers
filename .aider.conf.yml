@@ -3,3 +3,6 @@ read:
   - PROJECT_SPEC.md
   - ARCHITECTURE.md
   - TASKS.md
+  # Git controls
+auto-commits: false
+dirty-commits: false
