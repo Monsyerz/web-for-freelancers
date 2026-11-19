@@ -36,7 +36,7 @@
 
 ## Phase 2 — Authentication
 
-- [ ] **TASK-008:** Implement UserProfile model with Teacher and Student roles.
+- [x] **TASK-008:** Implement UserProfile model with Teacher and Student roles.
 - [ ] **TASK-009:** Implement Teacher login.
 - [ ] **TASK-010:** Implement Student login.
 - [ ] **TASK-011:** Implement role-based authorization and secure POST logout.
