@@ -2,7 +2,7 @@
 
 **Version:** 0.1  
 **Status:** Planning  
-**Current Phase:** Project Setup
+**Current Phase:** Django Foundation
 
 ## Agent Execution Rules
 
@@ -19,16 +19,16 @@
 
 ## Phase 0 — Project Preparation
 
-- [ ] **TASK-001:** Review project documentation for inconsistencies.
-- [ ] **TASK-002:** Verify `.gitignore` and local Aider configuration.
-- [ ] **TASK-003:** Establish the initial Git baseline.
+- [x] **TASK-001:** Review project documentation for inconsistencies.
+- [x] **TASK-002:** Verify `.gitignore` and local Aider configuration.
+- [x] **TASK-003:** Establish the initial Git baseline.
 
 **Acceptance criteria:** Documentation is consistent, unwanted files are ignored, and the repository has a clean committed baseline.
 
 ## Phase 1 — Django Foundation
 
-- [ ] **TASK-004:** Initialize Django project and configuration.
-- [ ] **TASK-005:** Configure SQLite and initial migrations.
+- [x] **TASK-004:** Initialize Django project and configuration.
+- [x] **TASK-005:** Configure SQLite and initial migrations.
 - [ ] **TASK-006:** Create shared base HTML template and local static CSS.
 - [ ] **TASK-007:** Create responsive landing page with Teacher and Student sections.
 
@@ -99,7 +99,7 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-001 — Review project documentation for inconsistencies.**
+**TASK-006 — Create shared base HTML template and local static CSS.**
 
 Do not implement application code during this task.
 
