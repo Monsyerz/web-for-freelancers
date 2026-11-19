@@ -29,7 +29,7 @@
 
 - [x] **TASK-004:** Initialize Django project and configuration.
 - [x] **TASK-005:** Configure SQLite and initial migrations.
-- [ ] **TASK-006:** Create shared base HTML template and local static CSS.
+- [x] **TASK-006:** Create shared base HTML template and local static CSS.
 - [ ] **TASK-007:** Create responsive landing page with Teacher and Student sections.
 
 **Acceptance criteria:** The application starts locally, Django system checks pass, and the landing page renders correctly.
@@ -99,9 +99,9 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-006 — Create shared base HTML template and local static CSS.**
+**TASK-007 — Create responsive landing page with Teacher and Student sections.**
 
-Do not implement application code during this task.
+Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 
 ## Definition of Done
 
