@@ -115,6 +115,47 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--color-primary);
 }
 
+.landing-container {
+    display: flex;
+    gap: var(--spacing-xl);
+    align-items: stretch;
+    min-height: 400px;
+}
+
+.landing-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--spacing-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background-color: var(--color-bg);
+    transition: box-shadow 0.2s;
+}
+
+.landing-panel:hover {
+    box-shadow: var(--shadow);
+}
+
+.panel-icon {
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-primary);
+}
+
+.landing-panel h2 {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.landing-panel p {
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-lg);
+    max-width: 300px;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0 var(--spacing-sm);
@@ -122,5 +163,14 @@ input:focus, select:focus, textarea:focus {
 
     .site-main {
         padding: var(--spacing-md) 0;
+    }
+
+    .landing-container {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .landing-panel {
+        padding: var(--spacing-lg);
     }
 }
