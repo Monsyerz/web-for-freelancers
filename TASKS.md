@@ -2,7 +2,7 @@
 
 **Version:** 0.1  
 **Status:** Planning  
-**Current Phase:** Django Foundation
+**Current Phase:** Authentication
 
 ## Agent Execution Rules
 
@@ -30,7 +30,7 @@
 - [x] **TASK-004:** Initialize Django project and configuration.
 - [x] **TASK-005:** Configure SQLite and initial migrations.
 - [x] **TASK-006:** Create shared base HTML template and local static CSS.
-- [ ] **TASK-007:** Create responsive landing page with Teacher and Student sections.
+- [x] **TASK-007:** Create responsive landing page with Teacher and Student sections.
 
 **Acceptance criteria:** The application starts locally, Django system checks pass, and the landing page renders correctly.
 
@@ -99,7 +99,7 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-007 — Create responsive landing page with Teacher and Student sections.**
+**TASK-008 — Implement UserProfile model with Teacher and Student roles.**
 
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 
