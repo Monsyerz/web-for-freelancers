@@ -223,3 +223,133 @@ class TeacherLoginTest(TestCase):
         )
         self.assertRedirects(response, reverse("landing"))
         self.assertIn("_auth_user_id", client.session)
+
+
+class StudentLoginTest(TestCase):
+    """Tests for Student login view and form."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.student = User.objects.create_user(
+            username="student_user",
+            email="student@example.com",
+            password="studentpass123"
+        )
+        UserProfile.objects.create(
+            user=self.student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Test Student"
+        )
+
+        self.teacher = User.objects.create_user(
+            username="teacher_user",
+            email="teacher@example.com",
+            password="teacherpass123"
+        )
+        UserProfile.objects.create(
+            user=self.teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Test Teacher"
+        )
+
+    def test_student_login_page_renders(self):
+        """GET student_login returns 200 and uses student template."""
+        response = self.client.get(reverse("student_login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/student_login.html")
+
+    def test_student_can_login(self):
+        """Student with valid credentials can log in and is redirected."""
+        response = self.client.post(
+            reverse("student_login"),
+            {
+                "username": "student_user",
+                "password": "studentpass123"
+            }
+        )
+        self.assertRedirects(response, reverse("landing"))
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+    def test_teacher_cannot_login_as_student(self):
+        """Teacher with valid credentials is rejected by Student Login."""
+        response = self.client.post(
+            reverse("student_login"),
+            {
+                "username": "teacher_user",
+                "password": "teacherpass123"
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_student_with_wrong_password_cannot_login(self):
+        """Student with incorrect password cannot log in."""
+        response = self.client.post(
+            reverse("student_login"),
+            {
+                "username": "student_user",
+                "password": "wrongpassword"
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_student_login_rejected_without_csrf_token(self):
+        """Login without CSRF token is rejected with 403."""
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(
+            reverse("student_login"),
+            {
+                "username": "student_user",
+                "password": "studentpass123"
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("_auth_user_id", client.session)
+
+    def test_student_login_succeeds_with_valid_csrf_token(self):
+        """Login with valid CSRF token succeeds."""
+        client = Client(enforce_csrf_checks=True)
+        client.get(reverse("student_login"))
+        csrf_token = client.cookies["csrftoken"].value
+        response = client.post(
+            reverse("student_login"),
+            {
+                "username": "student_user",
+                "password": "studentpass123",
+                "csrfmiddlewaretoken": csrf_token
+            }
+        )
+        self.assertRedirects(response, reverse("landing"))
+        self.assertIn("_auth_user_id", client.session)
+
+    def test_student_external_next_redirect_rejected(self):
+        """External next URL is rejected; redirect to landing instead."""
+        response = self.client.post(
+            reverse("student_login"),
+            {
+                "username": "student_user",
+                "password": "studentpass123",
+                "next": "https://evil.example.com"
+            }
+        )
+        self.assertRedirects(response, reverse("landing"))
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+    def test_user_without_profile_cannot_login_as_student(self):
+        """User without a UserProfile cannot log in through Student Login."""
+        User = get_user_model()
+        user_no_profile = User.objects.create_user(
+            username="no_profile_user",
+            email="nop@example.com",
+            password="nopass123"
+        )
+        response = self.client.post(
+            reverse("student_login"),
+            {
+                "username": "no_profile_user",
+                "password": "nopass123"
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)

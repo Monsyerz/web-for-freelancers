@@ -38,7 +38,7 @@
 
 - [x] **TASK-008:** Implement UserProfile model with Teacher and Student roles.
 - [x] **TASK-009:** Implement Teacher login.
-- [ ] **TASK-010:** Implement Student login.
+- [x] **TASK-010:** Implement Student login.
 - [ ] **TASK-011:** Implement role-based authorization and secure POST logout.
 - [ ] **TASK-012:** Create fictional Teacher and Student demo accounts using a local management command.
 

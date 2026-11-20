@@ -17,3 +17,18 @@ class TeacherLoginForm(AuthenticationForm):
 
         if profile.role != UserProfile.Role.TEACHER:
             raise ValidationError("Nieprawidłowe dane logowania.")
+
+
+class StudentLoginForm(AuthenticationForm):
+    """Login form restricted to Student role."""
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+
+        try:
+            profile = user.profile
+        except UserProfile.DoesNotExist:
+            raise ValidationError("Nieprawidłowe dane logowania.")
+
+        if profile.role != UserProfile.Role.STUDENT:
+            raise ValidationError("Nieprawidłowe dane logowania.")
