@@ -353,3 +353,92 @@ class StudentLoginTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+
+class LogoutTest(TestCase):
+    """Tests for secure POST-only logout."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.teacher = User.objects.create_user(
+            username="teacher_user",
+            email="teacher@example.com",
+            password="teacherpass123"
+        )
+        UserProfile.objects.create(
+            user=self.teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Test Teacher"
+        )
+
+        self.student = User.objects.create_user(
+            username="student_user",
+            email="student@example.com",
+            password="studentpass123"
+        )
+        UserProfile.objects.create(
+            user=self.student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Test Student"
+        )
+
+    def test_teacher_can_logout(self):
+        """Authenticated Teacher can log out via POST."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.post(reverse("logout"))
+        self.assertRedirects(response, reverse("landing"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_student_can_logout(self):
+        """Authenticated Student can log out via POST."""
+        self.client.login(username="student_user", password="studentpass123")
+        response = self.client.post(reverse("logout"))
+        self.assertRedirects(response, reverse("landing"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_logout_redirects_to_landing(self):
+        """Successful logout redirects to the landing page."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.post(reverse("logout"))
+        self.assertRedirects(response, reverse("landing"))
+
+    def test_logout_removes_session(self):
+        """After logout, the authenticated session is removed."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        self.assertIn("_auth_user_id", self.client.session)
+        self.client.post(reverse("logout"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_get_logout_returns_405(self):
+        """GET /accounts/logout/ returns HTTP 405."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("logout"))
+        self.assertEqual(response.status_code, 405)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_get_logout_does_not_log_out(self):
+        """GET /accounts/logout/ does not log out an authenticated user."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        self.client.get(reverse("logout"))
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_logout_without_csrf_token_returns_403(self):
+        """POST without CSRF token returns 403 when CSRF enforcement is enabled."""
+        client = Client(enforce_csrf_checks=True)
+        client.login(username="teacher_user", password="teacherpass123")
+        response = client.post(reverse("logout"))
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("_auth_user_id", client.session)
+
+    def test_logout_with_valid_csrf_token_succeeds(self):
+        """POST with valid CSRF token successfully logs out the user."""
+        client = Client(enforce_csrf_checks=True)
+        client.login(username="teacher_user", password="teacherpass123")
+        client.get(reverse("teacher_login"))
+        csrf_token = client.cookies["csrftoken"].value
+        response = client.post(
+            reverse("logout"),
+            {"csrfmiddlewaretoken": csrf_token}
+        )
+        self.assertRedirects(response, reverse("landing"))
+        self.assertNotIn("_auth_user_id", client.session)
