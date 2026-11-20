@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% else %}
+        <h1>Welcome, {{ profile.display_name|default:user.username }}!</h1>
+        <p>This is your teacher dashboard.</p>
+    {% endif %}
+</div>
+{% endblock %}

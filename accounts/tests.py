@@ -442,3 +442,61 @@ class LogoutTest(TestCase):
         )
         self.assertRedirects(response, reverse("landing"))
         self.assertNotIn("_auth_user_id", client.session)
+
+
+class TeacherDashboardTest(TestCase):
+    """Tests for Teacher Dashboard access control."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.teacher = User.objects.create_user(
+            username="teacher_user",
+            email="teacher@example.com",
+            password="teacherpass123"
+        )
+        UserProfile.objects.create(
+            user=self.teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Test Teacher"
+        )
+
+        self.student = User.objects.create_user(
+            username="student_user",
+            email="student@example.com",
+            password="studentpass123"
+        )
+        UserProfile.objects.create(
+            user=self.student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Test Student"
+        )
+
+    def test_teacher_can_access_dashboard(self):
+        """Authenticated teacher can access the dashboard."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/teacher_dashboard.html")
+
+    def test_anonymous_user_cannot_access_dashboard(self):
+        """Anonymous user is redirected to login when accessing dashboard."""
+        response = self.client.get(reverse("teacher_dashboard"))
+        self.assertRedirects(response, f"{reverse('teacher_login')}?next={reverse('teacher_dashboard')}")
+
+    def test_student_cannot_access_teacher_dashboard(self):
+        """Student is denied access to teacher dashboard with HTTP 403."""
+        self.client.login(username="student_user", password="studentpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_user_without_profile_cannot_access_dashboard(self):
+        """User without profile is denied access to teacher dashboard with HTTP 403."""
+        User = get_user_model()
+        user_no_profile = User.objects.create_user(
+            username="no_profile_user",
+            email="nop@example.com",
+            password="nopass123"
+        )
+        self.client.login(username="no_profile_user", password="nopass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+        self.assertEqual(response.status_code, 403)
