@@ -1,7 +1,7 @@
 # Web for Freelancers — Development Tasks
 
 **Version:** 0.1  
-**Status:** Planning  
+**Status:** In Progress
 **Current Phase:** Authentication
 
 ## Agent Execution Rules
@@ -39,17 +39,17 @@
 - [x] **TASK-008:** Implement UserProfile model with Teacher and Student roles.
 - [x] **TASK-009:** Implement Teacher login.
 - [x] **TASK-010:** Implement Student login.
-- [ ] **TASK-011:** Implement role-based authorization and secure POST logout.
+- [x] **TASK-011:** Implement role-based authorization and secure POST logout.
 - [ ] **TASK-012:** Create fictional Teacher and Student demo accounts using a local management command.
 
 **Acceptance criteria:** Both roles can authenticate, access their own dashboards, and cannot access restricted pages.
 
 ## Phase 3 — Teacher Dashboard
 
-- [ ] **TASK-013:** Create Teacher Dashboard layout and sidebar.
-- [ ] **TASK-014:** Implement TeacherStudent relationship.
-- [ ] **TASK-015:** Implement Lesson model and relationship validation.
-- [ ] **TASK-016:** Add fictional students and lessons.
+- [x] **TASK-013:** Create Teacher Dashboard layout and sidebar.
+- [x] **TASK-014:** Implement TeacherStudent relationship.
+- [x] **TASK-015:** Implement Lesson model and relationship validation.
+- [x] **TASK-016:** Add fictional students and lessons.
 - [ ] **TASK-017:** Display scheduled lessons in the dashboard table.
 - [ ] **TASK-018:** Display stored Microsoft Teams meeting URLs.
 - [ ] **TASK-019:** Add Lessons, Students, Homework and Notes placeholder pages.
@@ -99,9 +99,12 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-008 — Implement UserProfile model with Teacher and Student roles.**
+**TASK-012 — Create fictional Teacher and Student demo accounts.**
 
-Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
+Complete the missing demo login accounts using a local management command.
+
+TASK-013 through TASK-016 have already been implemented and verified.
+TASK-017 is next after TASK-012.
 
 ## Definition of Done
 
