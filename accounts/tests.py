@@ -129,7 +129,7 @@ class TeacherLoginTest(TestCase):
                 "password": "teacherpass123"
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("teacher_dashboard"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_student_cannot_login_as_teacher(self):
@@ -191,7 +191,7 @@ class TeacherLoginTest(TestCase):
         )
 
     def test_teacher_external_next_redirect_rejected(self):
-        """External next URL is rejected; redirect to landing instead."""
+        """External next URL is rejected; redirect to the teacher dashboard instead."""
         response = self.client.post(
             reverse("teacher_login"),
             {
@@ -200,7 +200,7 @@ class TeacherLoginTest(TestCase):
                 "next": "https://evil.example/"
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("teacher_dashboard"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_teacher_login_rejected_without_csrf_token(self):
@@ -229,7 +229,7 @@ class TeacherLoginTest(TestCase):
                 "csrfmiddlewaretoken": csrf_token
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("teacher_dashboard"))
         self.assertIn("_auth_user_id", client.session)
 
 
@@ -561,7 +561,7 @@ class SeedDemoAccountsTest(TestCase):
             reverse("teacher_login"),
             {"username": "demo_teacher", "password": "teacher_pass_123"}
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("teacher_dashboard"))
 
         self.client.logout()
 
