@@ -50,7 +50,7 @@
 - [x] **TASK-014:** Implement TeacherStudent relationship.
 - [x] **TASK-015:** Implement Lesson model and relationship validation.
 - [x] **TASK-016:** Add fictional students and lessons.
-- [ ] **TASK-017:** Display scheduled lessons in the dashboard table.
+- [x] **TASK-017:** Display scheduled lessons in the dashboard table.
 - [ ] **TASK-018:** Display stored Microsoft Teams meeting URLs.
 - [ ] **TASK-019:** Add Lessons, Students, Homework and Notes placeholder pages.
 
@@ -99,12 +99,13 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-012 — Create fictional Teacher and Student demo accounts.**
+**TASK-018 — Display stored Microsoft Teams meeting URLs.**
 
-Complete the missing demo login accounts using a local management command.
+Display existing Microsoft Teams meeting links for scheduled lessons.
 
-TASK-013 through TASK-016 have already been implemented and verified.
-TASK-017 is next after TASK-012.
+Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
+
+TASK-019 is next after TASK-018.
 
 ## Definition of Done
 
