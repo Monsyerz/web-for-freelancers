@@ -191,3 +191,171 @@ class LessonModelTest(TestCase):
             meeting_url="https://teams.microsoft.com/meet/12345"
         )
         self.assertEqual(lesson.meeting_url, "https://teams.microsoft.com/meet/12345")
+
+
+class SeedDemoLessonsCommandTest(TestCase):
+    def setUp(self):
+        self.teacher = User.objects.create_user(username="demo_teacher", password="pass")
+        UserProfile.objects.create(user=self.teacher, role="teacher", display_name="Demo Teacher")
+
+    def test_creates_demo_students(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        self.assertEqual(User.objects.filter(username="demo_student_anna").count(), 1)
+        self.assertEqual(User.objects.filter(username="demo_student_bartek").count(), 1)
+        self.assertEqual(User.objects.filter(username="demo_student_carol").count(), 1)
+
+    def test_students_have_student_role(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        student = User.objects.get(username="demo_student_anna")
+        self.assertEqual(student.profile.role, "student")
+
+    def test_students_assigned_to_teacher(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        student = User.objects.get(username="demo_student_anna")
+        self.assertEqual(student.assigned_teacher.teacher, self.teacher)
+
+    def test_creates_five_lessons(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 5)
+
+    def test_lessons_have_future_dates(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        lessons = Lesson.objects.filter(teacher=self.teacher)
+        for lesson in lessons:
+            self.assertGreater(lesson.scheduled_at, timezone.now() - timedelta(hours=1))
+
+    def test_idempotent_no_duplicates(self):
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        self.assertEqual(User.objects.filter(username="demo_student_anna").count(), 1)
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 5)
+
+    def test_invalid_teacher_rejected(self):
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        with self.assertRaisesRegex(CommandError, "does not exist"):
+            call_command("seed_demo_lessons", "nonexistent_teacher")
+
+        self.assertEqual(User.objects.filter(username="demo_student_anna").count(), 0)
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+
+    def test_student_role_user_rejected(self):
+        student = User.objects.create_user(username="just_student", password="pass")
+        UserProfile.objects.create(user=student, role="student", display_name="Just Student")
+
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        with self.assertRaisesRegex(CommandError, "TEACHER"):
+            call_command("seed_demo_lessons", "just_student")
+
+        self.assertEqual(User.objects.filter(username="demo_student_anna").count(), 0)
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+
+    def test_preserves_existing_records(self):
+        existing_student = User.objects.create_user(username="existing_student", password="pass")
+        UserProfile.objects.create(user=existing_student, role="student", display_name="Existing")
+        TeacherStudent.objects.create(teacher=self.teacher, student=existing_student)
+
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        self.assertEqual(User.objects.filter(username="existing_student").count(), 1)
+        self.assertEqual(TeacherStudent.objects.filter(teacher=self.teacher).count(), 4)
+
+    def test_conflicting_username_not_student_role(self):
+        """Test that existing username with non-student role raises error."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        # Create user with demo username but teacher role
+        conflicting_user = User.objects.create_user(username="demo_student_anna", password="pass")
+        UserProfile.objects.create(user=conflicting_user, role="teacher", display_name="Conflicting")
+
+        with self.assertRaisesRegex(CommandError, "not a student"):
+            call_command("seed_demo_lessons", "demo_teacher")
+
+        # Verify no changes were made
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+        self.assertEqual(TeacherStudent.objects.filter(teacher=self.teacher).count(), 0)
+
+    def test_conflicting_username_not_assigned_to_teacher(self):
+        """Test that existing username not assigned to teacher raises error."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        # Create user with demo username, student role, but assigned to different teacher
+        other_teacher = User.objects.create_user(username="other_teacher", password="pass")
+        UserProfile.objects.create(user=other_teacher, role="teacher", display_name="Other Teacher")
+
+        conflicting_user = User.objects.create_user(username="demo_student_anna", password="pass")
+        UserProfile.objects.create(user=conflicting_user, role="student", display_name="Conflicting")
+        TeacherStudent.objects.create(teacher=other_teacher, student=conflicting_user)
+
+        with self.assertRaisesRegex(CommandError, "not assigned to teacher"):
+            call_command("seed_demo_lessons", "demo_teacher")
+
+        # Verify no changes were made
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+        self.assertEqual(TeacherStudent.objects.filter(teacher=self.teacher).count(), 0)
+
+    def test_conflicting_username_no_profile(self):
+        """Test that existing username without profile raises error."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        # Create user with demo username but no profile
+        User.objects.create_user(username="demo_student_anna", password="pass")
+
+        with self.assertRaisesRegex(CommandError, "has no profile"):
+            call_command("seed_demo_lessons", "demo_teacher")
+
+        # Verify no changes were made
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+        self.assertEqual(TeacherStudent.objects.filter(teacher=self.teacher).count(), 0)
+
+    def test_transaction_rollback_on_error(self):
+        """Test that transaction rolls back when error occurs."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        # Create conflicting user BEFORE running seed command
+        conflicting_user = User.objects.create_user(username="demo_student_bartek", password="pass")
+        UserProfile.objects.create(user=conflicting_user, role="teacher", display_name="Conflicting")
+
+        # Run command - should fail and roll back
+        with self.assertRaisesRegex(CommandError, "not a student"):
+            call_command("seed_demo_lessons", "demo_teacher")
+
+        # Verify demo_student_anna was rolled back
+        self.assertEqual(User.objects.filter(username="demo_student_anna").count(), 0)
+
+        # Verify no demo lessons or assignments were created
+        self.assertEqual(Lesson.objects.filter(teacher=self.teacher).count(), 0)
+        self.assertEqual(TeacherStudent.objects.filter(teacher=self.teacher).count(), 0)
+
+        # Verify conflicting Bartek account remains unchanged
+        self.assertEqual(User.objects.filter(username="demo_student_bartek").count(), 1)
+        self.assertEqual(conflicting_user.profile.role, "teacher")
+
+    def test_demo_students_have_unusable_passwords(self):
+        """Test that demo students have genuinely unusable passwords."""
+        from django.core.management import call_command
+        call_command("seed_demo_lessons", "demo_teacher")
+
+        for username in ["demo_student_anna", "demo_student_bartek", "demo_student_carol"]:
+            student = User.objects.get(username=username)
+            self.assertFalse(student.has_usable_password())
