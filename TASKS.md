@@ -40,7 +40,7 @@
 - [x] **TASK-009:** Implement Teacher login.
 - [x] **TASK-010:** Implement Student login.
 - [x] **TASK-011:** Implement role-based authorization and secure POST logout.
-- [ ] **TASK-012:** Create fictional Teacher and Student demo accounts using a local management command.
+- [x] **TASK-012:** Create fictional Teacher and Student demo accounts using a local management command.
 
 **Acceptance criteria:** Both roles can authenticate, access their own dashboards, and cannot access restricted pages.
 
