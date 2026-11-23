@@ -3,6 +3,12 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
 from django.urls import reverse
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from io import StringIO
+import os
+import unittest.mock
+
 from .models import UserProfile
 
 
@@ -500,3 +506,210 @@ class TeacherDashboardTest(TestCase):
         self.client.login(username="no_profile_user", password="nopass123")
         response = self.client.get(reverse("teacher_dashboard"))
         self.assertEqual(response.status_code, 403)
+
+
+class SeedDemoAccountsTest(TestCase):
+    """Tests for the seed_demo_accounts management command."""
+
+    def setUp(self):
+        # Clear demo password env vars to ensure isolation
+        self.env_patcher = unittest.mock.patch.dict(
+            os.environ,
+            {"DEMO_TEACHER_PASSWORD": "", "DEMO_STUDENT_PASSWORD": ""},
+            clear=False
+        )
+        self.env_patcher.start()
+
+    def tearDown(self):
+        self.env_patcher.stop()
+
+    def _set_env(self, teacher_password, student_password):
+        """Set environment variables for demo passwords."""
+        env = {}
+        if teacher_password is not None:
+            env["DEMO_TEACHER_PASSWORD"] = teacher_password
+        if student_password is not None:
+            env["DEMO_STUDENT_PASSWORD"] = student_password
+        self.env_patcher = unittest.mock.patch.dict(os.environ, env, clear=False)
+        self.env_patcher.start()
+
+    def test_creates_teacher_and_student_accounts(self):
+        """Command creates both teacher and student demo accounts."""
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        out = StringIO()
+        call_command("seed_demo_accounts", stdout=out)
+
+        User = get_user_model()
+        teacher = User.objects.get(username="demo_teacher")
+        student = User.objects.get(username="demo_student")
+
+        self.assertEqual(teacher.profile.role, UserProfile.Role.TEACHER)
+        self.assertEqual(student.profile.role, UserProfile.Role.STUDENT)
+        self.assertTrue(teacher.check_password("teacher_pass_123"))
+        self.assertTrue(student.check_password("student_pass_123"))
+
+    def test_accounts_can_login(self):
+        """Created demo accounts can authenticate through login forms."""
+        self._set_env("teacher_pass_123", "student_pass_123")
+        call_command("seed_demo_accounts")
+
+        # Teacher login
+        response = self.client.post(
+            reverse("teacher_login"),
+            {"username": "demo_teacher", "password": "teacher_pass_123"}
+        )
+        self.assertRedirects(response, reverse("landing"))
+
+        self.client.logout()
+
+        # Student login
+        response = self.client.post(
+            reverse("student_login"),
+            {"username": "demo_student", "password": "student_pass_123"}
+        )
+        self.assertRedirects(response, reverse("landing"))
+
+    def test_idempotent_repeated_execution(self):
+        """Running the command twice does not create duplicate accounts."""
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        call_command("seed_demo_accounts")
+        call_command("seed_demo_accounts")
+
+        User = get_user_model()
+        self.assertEqual(User.objects.filter(username="demo_teacher").count(), 1)
+        self.assertEqual(User.objects.filter(username="demo_student").count(), 1)
+
+    def test_does_not_reset_existing_passwords(self):
+        """Existing accounts keep their original passwords."""
+        User = get_user_model()
+        existing_teacher = User.objects.create_user(
+            username="demo_teacher",
+            password="original_password",
+            email="demo_teacher@demo.local"
+        )
+        UserProfile.objects.create(
+            user=existing_teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Demo Teacher"
+        )
+
+        self._set_env("new_password", "student_pass_123")
+        call_command("seed_demo_accounts")
+
+        self.assertTrue(existing_teacher.check_password("original_password"))
+
+    def test_fails_when_teacher_password_missing(self):
+        """Command fails if DEMO_TEACHER_PASSWORD is not set."""
+        self._set_env(None, "student_pass_123")
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("seed_demo_accounts")
+        self.assertIn("DEMO_TEACHER_PASSWORD", str(ctx.exception))
+
+    def test_fails_when_student_password_missing(self):
+        """Command fails if DEMO_STUDENT_PASSWORD is not set."""
+        self._set_env("teacher_pass_123", None)
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("seed_demo_accounts")
+        self.assertIn("DEMO_STUDENT_PASSWORD", str(ctx.exception))
+
+    def test_fails_on_username_collision_wrong_role(self):
+        """Command fails if username exists with wrong role."""
+        User = get_user_model()
+        wrong_role_user = User.objects.create_user(
+            username="demo_teacher",
+            password="somepass",
+            email="demo_teacher@demo.local"
+        )
+        UserProfile.objects.create(
+            user=wrong_role_user,
+            role=UserProfile.Role.STUDENT,
+            display_name="Demo Teacher"
+        )
+
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("seed_demo_accounts")
+        self.assertIn("role", str(ctx.exception).lower())
+
+    def test_custom_usernames(self):
+        """Command supports custom usernames via arguments."""
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        call_command(
+            "seed_demo_accounts",
+            "--teacher-username", "custom_teacher",
+            "--student-username", "custom_student"
+        )
+
+        User = get_user_model()
+        self.assertTrue(User.objects.filter(username="custom_teacher").exists())
+        self.assertTrue(User.objects.filter(username="custom_student").exists())
+
+    def test_partial_failure_rolls_back_all_changes(self):
+        """If student creation fails, teacher creation is rolled back."""
+        User = get_user_model()
+
+        # Pre-create student with wrong role to trigger failure
+        wrong_role_student = User.objects.create_user(
+            username="demo_student",
+            password="somepass",
+            email="demo_student@demo.local"
+        )
+        UserProfile.objects.create(
+            user=wrong_role_student,
+            role=UserProfile.Role.TEACHER,
+            display_name="Demo Student"
+        )
+
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        with self.assertRaises(CommandError):
+            call_command("seed_demo_accounts")
+
+        # Teacher should not have been created (rolled back)
+        self.assertFalse(User.objects.filter(username="demo_teacher").exists())
+
+    def test_fails_on_existing_account_with_wrong_email(self):
+        """Command fails if existing account has correct role but wrong email."""
+        User = get_user_model()
+        existing_user = User.objects.create_user(
+            username="demo_teacher",
+            password="somepass",
+            email="wrong@example.com"
+        )
+        UserProfile.objects.create(
+            user=existing_user,
+            role=UserProfile.Role.TEACHER,
+            display_name="Demo Teacher"
+        )
+
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("seed_demo_accounts")
+        self.assertIn("email", str(ctx.exception).lower())
+
+    def test_fails_on_existing_account_with_wrong_display_name(self):
+        """Command fails if existing account has correct role but wrong display name."""
+        User = get_user_model()
+        existing_user = User.objects.create_user(
+            username="demo_teacher",
+            password="somepass",
+            email="demo_teacher@demo.local"
+        )
+        UserProfile.objects.create(
+            user=existing_user,
+            role=UserProfile.Role.TEACHER,
+            display_name="Wrong Name"
+        )
+
+        self._set_env("teacher_pass_123", "student_pass_123")
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("seed_demo_accounts")
+        self.assertIn("display name", str(ctx.exception).lower())
