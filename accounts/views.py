@@ -2,9 +2,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
+from django.utils import timezone
 
 from .forms import TeacherLoginForm, StudentLoginForm
 from .models import UserProfile
+from lessons.models import Lesson
 
 
 class TeacherLoginView(LoginView):
@@ -13,7 +15,7 @@ class TeacherLoginView(LoginView):
     form_class = TeacherLoginForm
     template_name = "accounts/teacher_login.html"
     redirect_authenticated_user = False
-    next_page = "landing"
+    next_page = "teacher_dashboard"
 
 
 class StudentLoginView(LoginView):
@@ -35,7 +37,13 @@ def teacher_dashboard(request):
     except UserProfile.DoesNotExist:
         raise PermissionDenied("User profile not found.")
 
+    upcoming_lessons = Lesson.objects.filter(
+        teacher=request.user,
+        scheduled_at__gte=timezone.now()
+    ).order_by("scheduled_at")
+
     return render(request, "accounts/teacher_dashboard.html", {
         "user": request.user,
-        "profile": profile
+        "profile": profile,
+        "upcoming_lessons": upcoming_lessons
     })

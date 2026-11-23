@@ -10,6 +10,8 @@ import os
 import unittest.mock
 
 from .models import UserProfile
+from lessons.models import Lesson, TeacherStudent
+from django.utils import timezone
 
 
 class UserProfileModelTest(TestCase):
@@ -713,3 +715,175 @@ class SeedDemoAccountsTest(TestCase):
         with self.assertRaises(CommandError) as ctx:
             call_command("seed_demo_accounts")
         self.assertIn("display name", str(ctx.exception).lower())
+
+
+class TeacherDashboardLessonTest(TestCase):
+    """Tests for Teacher Dashboard lesson display."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.teacher = User.objects.create_user(
+            username="teacher_user",
+            email="teacher@example.com",
+            password="teacherpass123"
+        )
+        UserProfile.objects.create(
+            user=self.teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Test Teacher"
+        )
+
+        self.student1 = User.objects.create_user(
+            username="student1",
+            email="student1@example.com",
+            password="studentpass123"
+        )
+        UserProfile.objects.create(
+            user=self.student1,
+            role=UserProfile.Role.STUDENT,
+            display_name="Student One"
+        )
+
+        self.student2 = User.objects.create_user(
+            username="student2",
+            email="student2@example.com",
+            password="studentpass123"
+        )
+        UserProfile.objects.create(
+            user=self.student2,
+            role=UserProfile.Role.STUDENT,
+            display_name="Student Two"
+        )
+
+        TeacherStudent.objects.create(
+            teacher=self.teacher,
+            student=self.student1
+        )
+        TeacherStudent.objects.create(
+            teacher=self.teacher,
+            student=self.student2
+        )
+
+    def test_upcoming_lessons_displayed(self):
+        """Upcoming lessons are displayed with student name, topic, date, and duration."""
+        now = timezone.now()
+        future_lesson1 = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="Math",
+            scheduled_at=now + timezone.timedelta(days=1),
+            duration_minutes=60
+        )
+        future_lesson2 = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student2,
+            topic="Science",
+            scheduled_at=now + timezone.timedelta(days=2),
+            duration_minutes=45
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        self.assertContains(response, future_lesson1.student.profile.display_name)
+        self.assertContains(response, future_lesson1.topic)
+        self.assertContains(response, timezone.localtime(future_lesson1.scheduled_at).strftime("%Y-%m-%d %H:%M"))
+        self.assertContains(response, str(future_lesson1.duration_minutes))
+
+        self.assertContains(response, future_lesson2.student.profile.display_name)
+        self.assertContains(response, future_lesson2.topic)
+        self.assertContains(response, timezone.localtime(future_lesson2.scheduled_at).strftime("%Y-%m-%d %H:%M"))
+        self.assertContains(response, str(future_lesson2.duration_minutes))
+
+    def test_upcoming_lessons_ordered_by_scheduled_at(self):
+        """Upcoming lessons are ordered by scheduled_at ascending."""
+        now = timezone.now()
+        future_lesson1 = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="Math",
+            scheduled_at=now + timezone.timedelta(days=2),
+            duration_minutes=60
+        )
+        future_lesson2 = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student2,
+            topic="Science",
+            scheduled_at=now + timezone.timedelta(days=1),
+            duration_minutes=45
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        lessons = response.context["upcoming_lessons"]
+        self.assertEqual(list(lessons), [future_lesson2, future_lesson1])
+
+    def test_past_lessons_excluded(self):
+        """Past lessons are excluded from the dashboard."""
+        now = timezone.now()
+        past_lesson = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="History",
+            scheduled_at=now - timezone.timedelta(days=1),
+            duration_minutes=30
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        lessons = response.context["upcoming_lessons"]
+        self.assertNotIn(past_lesson, lessons)
+
+    def test_no_upcoming_lessons_empty_state(self):
+        """A teacher with no upcoming lessons sees the empty state."""
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        lessons = response.context["upcoming_lessons"]
+        self.assertFalse(lessons.exists())
+        self.assertContains(response, "No upcoming lessons scheduled.")
+
+    def test_teacher_cannot_see_other_teacher_lessons(self):
+        """A teacher cannot see another teacher's lessons."""
+        other_teacher = get_user_model().objects.create_user(
+            username="other_teacher",
+            email="other_teacher@example.com",
+            password="otherpass123"
+        )
+        UserProfile.objects.create(
+            user=other_teacher,
+            role=UserProfile.Role.TEACHER,
+            display_name="Other Teacher"
+        )
+
+        other_student = get_user_model().objects.create_user(
+            username="other_student",
+            email="other_student@example.com",
+            password="otherpass123"
+        )
+        UserProfile.objects.create(
+            user=other_student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Other Student"
+        )
+
+        TeacherStudent.objects.create(
+            teacher=other_teacher,
+            student=other_student
+        )
+
+        other_lesson = Lesson.objects.create(
+            teacher=other_teacher,
+            student=other_student,
+            topic="Other Topic",
+            scheduled_at=timezone.now() + timezone.timedelta(days=1),
+            duration_minutes=60
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        lessons = response.context["upcoming_lessons"]
+        self.assertNotIn(other_lesson, lessons)

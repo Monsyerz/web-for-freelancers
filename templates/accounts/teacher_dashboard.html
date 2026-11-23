@@ -22,8 +22,31 @@
 
         <div class="dashboard-section">
             <h2>Upcoming Lessons</h2>
-            <div class="lessons-placeholder">
-                <p>No upcoming lessons scheduled.</p>
+            <div class="lessons-table-wrapper">
+                <table class="lessons-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Lesson Topic</th>
+                            <th>Date & Time</th>
+                            <th>Duration (min)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lesson in upcoming_lessons %}
+                            <tr>
+                                <td>{{ lesson.student.profile.display_name|default:lesson.student.username }}</td>
+                                <td>{{ lesson.topic }}</td>
+                                <td>{{ lesson.scheduled_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ lesson.duration_minutes }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">No upcoming lessons scheduled.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

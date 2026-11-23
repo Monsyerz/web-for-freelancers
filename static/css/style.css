@@ -284,6 +284,34 @@ input:focus, select:focus, textarea:focus {
     border-radius: var(--radius);
 }
 
+.lessons-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.lessons-table {
+    min-width: 600px;
+    border-collapse: collapse;
+    margin-bottom: var(--spacing-md);
+}
+
+.lessons-table th,
+.lessons-table td {
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.lessons-table th {
+    background-color: var(--color-bg-alt);
+    font-weight: 500;
+}
+
+.lessons-table tr:nth-child(even) {
+    background-color: var(--color-bg-alt);
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0 var(--spacing-sm);
