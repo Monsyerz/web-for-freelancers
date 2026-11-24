@@ -51,7 +51,7 @@
 - [x] **TASK-015:** Implement Lesson model and relationship validation.
 - [x] **TASK-016:** Add fictional students and lessons.
 - [x] **TASK-017:** Display scheduled lessons in the dashboard table.
-- [ ] **TASK-018:** Display stored Microsoft Teams meeting URLs.
+- [x] **TASK-018:** Display stored Microsoft Teams meeting URLs.
 - [ ] **TASK-019:** Add Lessons, Students, Homework and Notes placeholder pages.
 
 **Acceptance criteria:** A logged-in teacher sees their own scheduled lessons, students, topics, dates and meeting URLs. Teacher data is isolated.
@@ -99,13 +99,11 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-018 — Display stored Microsoft Teams meeting URLs.**
+**TASK-019 — Add Lessons, Students, Homework and Notes placeholder pages.**
 
-Display existing Microsoft Teams meeting links for scheduled lessons.
+Implement placeholder pages for the Lessons, Students, Homework, and Notes sections in the Teacher Dashboard.
 
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
-
-TASK-019 is next after TASK-018.
 
 ## Definition of Done
 
