@@ -5,7 +5,7 @@
 {% block content %}
 <div class="dashboard-layout">
     <aside class="dashboard-sidebar">
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Teacher dashboard">
             {% with current_page=request.resolver_match.url_name %}
             <a href="{% url 'teacher_dashboard' %}"
                class="sidebar-link{% if current_page == 'teacher_dashboard' %} active{% endif %}"
@@ -23,6 +23,10 @@
                class="sidebar-link{% if current_page == 'teacher_notes' %} active{% endif %}"
                {% if current_page == 'teacher_notes' %}aria-current="page"{% endif %}>Notes</a>
             {% endwith %}
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="sidebar-link sidebar-logout">Log out</button>
+            </form>
         </nav>
     </aside>
 
@@ -34,15 +38,15 @@
         </div>
 
         <div class="dashboard-section">
-            <h2>Upcoming Lessons</h2>
-            <div class="lessons-table-wrapper">
+            <h2 id="upcoming-lessons-heading">Upcoming Lessons</h2>
+            <div class="lessons-table-wrapper" role="region" aria-labelledby="upcoming-lessons-heading" tabindex="0">
                 <table class="lessons-table">
                     <thead>
                         <tr>
-                            <th>Student</th>
-                            <th>Lesson Topic</th>
-                            <th>Date & Time</th>
-                            <th>Duration (min)</th>
+                            <th scope="col">Student</th>
+                            <th scope="col">Lesson Topic</th>
+                            <th scope="col">Date & Time</th>
+                            <th scope="col">Duration (min)</th>
                             <th scope="col">Meeting</th>
                         </tr>
                     </thead>

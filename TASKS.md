@@ -66,11 +66,11 @@
 
 ## Phase 5 — Testing and Quality
 
-- [ ] **TASK-023:** Review and complete authentication tests.
-- [ ] **TASK-024:** Test role-based authorization and data isolation.
-- [ ] **TASK-025:** Test lesson relationships and dashboard rendering.
-- [ ] **TASK-026:** Review responsive layout and accessibility.
-- [ ] **TASK-027:** Run the complete test suite and resolve failures.
+- [x] **TASK-023:** Review and complete authentication tests.
+- [x] **TASK-024:** Test role-based authorization and data isolation.
+- [x] **TASK-025:** Test lesson relationships and dashboard rendering.
+- [x] **TASK-026:** Review responsive layout and accessibility.
+- [x] **TASK-027:** Run the complete test suite and resolve failures.
 
 **Acceptance criteria:** Relevant tests pass, Django system checks pass, and known limitations are documented.
 
@@ -99,9 +99,9 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-023 — Review and complete authentication tests.**
+**TASK-028 — Update README with installation and setup instructions.**
 
-Review existing authentication tests, identify missing coverage, and implement only necessary test improvements.
+Review the existing README and update installation and setup instructions according to the approved project specification.
 
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 

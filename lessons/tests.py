@@ -171,6 +171,23 @@ class LessonModelTest(TestCase):
                 duration_minutes=60
             )
 
+    def test_missing_required_lesson_fields_raise_validation_errors(self):
+        fields = {
+            "teacher": self.teacher,
+            "student": self.student1,
+            "topic": "Grammar Practice",
+            "scheduled_at": self.future_time,
+            "duration_minutes": 60,
+        }
+        for field in ("teacher", "student", "scheduled_at", "duration_minutes"):
+            for method in ("full_clean", "save"):
+                with self.subTest(field=field, method=method):
+                    lesson = Lesson(**{**fields, field: None})
+                    with self.assertRaises(ValidationError) as error:
+                        getattr(lesson, method)()
+                    self.assertIn(field, error.exception.message_dict)
+        self.assertFalse(Lesson.objects.exists())
+
     def test_optional_meeting_url_accepted(self):
         lesson = Lesson.objects.create(
             teacher=self.teacher,

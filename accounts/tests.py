@@ -174,6 +174,36 @@ class TeacherLoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.wsgi_request.user.is_authenticated)
 
+    def test_unknown_teacher_username_cannot_login(self):
+        response = self.client.post(
+            reverse("teacher_login"),
+            {"username": "unknown_teacher", "password": "teacherpass123"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].non_field_errors())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_teacher_login_form_preserves_placeholder_destination(self):
+        destination = reverse("teacher_lessons")
+        login_url = reverse("teacher_login")
+        redirect = self.client.get(destination)
+        self.assertRedirects(redirect, f"{login_url}?next={destination}")
+
+        response = self.client.get(redirect.url)
+        self.assertContains(
+            response, f'<input type="hidden" name="next" value="{destination}">',
+            html=True,
+        )
+        response = self.client.post(
+            login_url,
+            {
+                "username": "teacher_user",
+                "password": "teacherpass123",
+                "next": destination,
+            },
+        )
+        self.assertRedirects(response, destination)
+
     def test_teacher_safe_next_redirect(self):
         """Teacher login redirects to safe next URL."""
         response = self.client.post(
@@ -301,6 +331,15 @@ class StudentLoginTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_unknown_student_username_cannot_login(self):
+        response = self.client.post(
+            reverse("student_login"),
+            {"username": "unknown_student", "password": "studentpass123"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].non_field_errors())
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_student_login_rejected_without_csrf_token(self):
         """Login without CSRF token is rejected with 403."""
@@ -627,6 +666,23 @@ class TeacherDashboardTest(TestCase):
         self.client.login(username="no_profile_user", password="nopass123")
         response = self.client.get(reverse("teacher_dashboard"))
         self.assertEqual(response.status_code, 403)
+
+    def test_teacher_can_log_out_from_sidebar(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.teacher)
+        logout_url = reverse("logout")
+        response = client.get(reverse("teacher_notes"))
+        csrf_token = response.context["csrf_token"]
+        form = f"""
+            <form method="post" action="{logout_url}">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{csrf_token}">
+                <button type="submit" class="sidebar-link sidebar-logout">Log out</button>
+            </form>
+        """
+        self.assertContains(response, form, html=True)
+        response = client.post(logout_url, {"csrfmiddlewaretoken": csrf_token})
+        self.assertRedirects(response, reverse("landing"))
+        self.assertNotIn("_auth_user_id", client.session)
 
     placeholder_pages = (
         ("teacher_lessons", "Lessons"),
@@ -1068,6 +1124,38 @@ class TeacherDashboardLessonTest(TestCase):
         lessons = response.context["upcoming_lessons"]
         self.assertNotIn(other_lesson, lessons)
 
+    def test_student_post_cannot_override_teacher_role_or_change_lesson(self):
+        lesson = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="Private lesson",
+            scheduled_at=timezone.now() + timezone.timedelta(days=1),
+            duration_minutes=45,
+        )
+        original_lessons = list(Lesson.objects.order_by("pk").values())
+        original_assignments = list(TeacherStudent.objects.order_by("pk").values())
+
+        self.client.force_login(self.student2)
+        for route in ("teacher_dashboard", "teacher_lessons"):
+            with self.subTest(route=route):
+                response = self.client.post(
+                    reverse(route),
+                    {
+                        "role": ["student", "teacher"],
+                        "teacher_id": self.teacher.pk,
+                        "lesson_id": lesson.pk,
+                        "student_id": "invalid-id",
+                        "topic": "Unapproved change",
+                    },
+                )
+                self.assertEqual(response.status_code, 403)
+                self.assertNotContains(response, lesson.topic, status_code=403)
+
+        self.assertEqual(list(Lesson.objects.order_by("pk").values()), original_lessons)
+        self.assertEqual(
+            list(TeacherStudent.objects.order_by("pk").values()), original_assignments
+        )
+
     def test_meeting_url_displayed(self):
         """A lesson with meeting_url displays a Join Meeting link with the correct href."""
         now = timezone.now()
@@ -1087,6 +1175,34 @@ class TeacherDashboardLessonTest(TestCase):
         self.assertContains(response, 'target="_blank"')
         self.assertContains(response, 'rel="noopener noreferrer"')
         self.assertContains(response, 'Join Meeting')
+
+    def test_dashboard_escapes_lesson_topic_and_display_names(self):
+        self.teacher.profile.display_name = "<b>Teacher</b>"
+        self.teacher.profile.save(update_fields=["display_name"])
+        self.student1.profile.display_name = "<b>Student</b>"
+        self.student1.profile.save(update_fields=["display_name"])
+        Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="<em>Grammar & pronunciation</em>",
+            scheduled_at=timezone.now() + timezone.timedelta(days=1),
+            duration_minutes=30,
+        )
+
+        self.client.force_login(self.teacher)
+        response = self.client.get(reverse("teacher_dashboard"))
+        rendered_text = (
+            ("<b>Teacher</b>", "&lt;b&gt;Teacher&lt;/b&gt;"),
+            ("<b>Student</b>", "&lt;b&gt;Student&lt;/b&gt;"),
+            (
+                "<em>Grammar & pronunciation</em>",
+                "&lt;em&gt;Grammar &amp; pronunciation&lt;/em&gt;",
+            ),
+        )
+        for original, escaped in rendered_text:
+            with self.subTest(text=original):
+                self.assertContains(response, escaped)
+                self.assertNotContains(response, original)
 
     def test_no_meeting_url_displayed(self):
         """A lesson without meeting_url displays Not provided."""

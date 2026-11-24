@@ -68,6 +68,19 @@ class Lesson(models.Model):
 
     def clean(self):
         super().clean()
+        required_values = {
+            "teacher": self.teacher_id,
+            "student": self.student_id,
+            "scheduled_at": self.scheduled_at,
+            "duration_minutes": self.duration_minutes,
+        }
+        missing_fields = {
+            field: "This field is required."
+            for field, value in required_values.items()
+            if value is None
+        }
+        if missing_fields:
+            raise ValidationError(missing_fields)
         if not self.topic or not self.topic.strip():
             raise ValidationError("Topic cannot be empty.")
         if self.duration_minutes <= 0:
