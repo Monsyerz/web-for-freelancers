@@ -52,15 +52,15 @@
 - [x] **TASK-016:** Add fictional students and lessons.
 - [x] **TASK-017:** Display scheduled lessons in the dashboard table.
 - [x] **TASK-018:** Display stored Microsoft Teams meeting URLs.
-- [ ] **TASK-019:** Add Lessons, Students, Homework and Notes placeholder pages.
+- [x] **TASK-019:** Add Lessons, Students, Homework and Notes placeholder pages.
 
 **Acceptance criteria:** A logged-in teacher sees their own scheduled lessons, students, topics, dates and meeting URLs. Teacher data is isolated.
 
 ## Phase 4 — Student Dashboard
 
-- [ ] **TASK-020:** Create basic Student Dashboard.
-- [ ] **TASK-021:** Display student welcome information.
-- [ ] **TASK-022:** Verify Student navigation and access restrictions.
+- [x] **TASK-020:** Create basic Student Dashboard.
+- [x] **TASK-021:** Display student welcome information.
+- [x] **TASK-022:** Verify Student navigation and access restrictions.
 
 **Acceptance criteria:** Students can log in and access their dashboard without accessing teacher-only content.
 
@@ -99,9 +99,9 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-019 — Add Lessons, Students, Homework and Notes placeholder pages.**
+**TASK-023 — Review and complete authentication tests.**
 
-Implement placeholder pages for the Lessons, Students, Homework, and Notes sections in the Teacher Dashboard.
+Review existing authentication tests, identify missing coverage, and implement only necessary test improvements.
 
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 

@@ -24,7 +24,7 @@ class StudentLoginView(LoginView):
     form_class = StudentLoginForm
     template_name = "accounts/student_login.html"
     redirect_authenticated_user = False
-    next_page = "landing"
+    next_page = "student_dashboard"
 
 
 def _require_teacher(user):
@@ -59,3 +59,16 @@ def teacher_placeholder(request, template_name):
     """Render a placeholder for a teacher dashboard section."""
     _require_teacher(request.user)
     return render(request, template_name)
+
+
+@login_required(login_url="student_login")
+def student_dashboard(request):
+    """Student dashboard view - requires STUDENT role."""
+    try:
+        profile = request.user.profile
+    except UserProfile.DoesNotExist:
+        raise PermissionDenied("User profile not found.")
+    if profile.role != UserProfile.Role.STUDENT:
+        raise PermissionDenied("Only students can access this page.")
+
+    return render(request, "accounts/student_dashboard.html", {"profile": profile})

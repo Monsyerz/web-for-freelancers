@@ -275,7 +275,7 @@ class StudentLoginTest(TestCase):
                 "password": "studentpass123"
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("student_dashboard"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_teacher_cannot_login_as_student(self):
@@ -328,7 +328,7 @@ class StudentLoginTest(TestCase):
                 "csrfmiddlewaretoken": csrf_token
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("student_dashboard"))
         self.assertIn("_auth_user_id", client.session)
 
     def test_student_external_next_redirect_rejected(self):
@@ -341,7 +341,7 @@ class StudentLoginTest(TestCase):
                 "next": "https://evil.example.com"
             }
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("student_dashboard"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_user_without_profile_cannot_login_as_student(self):
@@ -361,6 +361,125 @@ class StudentLoginTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+
+class StudentDashboardTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.student = User.objects.create_user(username="dashboard_student")
+        UserProfile.objects.create(
+            user=cls.student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Dashboard Student",
+        )
+        cls.teacher = User.objects.create_user(username="dashboard_teacher")
+        UserProfile.objects.create(user=cls.teacher, role=UserProfile.Role.TEACHER)
+
+    def test_student_can_access_dashboard(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/student_dashboard.html")
+
+    def test_anonymous_user_redirected_to_student_login(self):
+        url = reverse("student_dashboard")
+        login_url = reverse("student_login")
+        self.assertRedirects(self.client.get(url), f"{login_url}?next={url}")
+
+    def test_teacher_cannot_access_student_dashboard(self):
+        self.client.force_login(self.teacher)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_user_without_profile_cannot_access_student_dashboard(self):
+        user = get_user_model().objects.create_user(username="dashboard_no_profile")
+        self.client.force_login(user)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_dashboard_welcomes_student_by_display_name(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertContains(response, "<h1>Welcome, Dashboard Student!</h1>", html=True)
+
+    def test_dashboard_falls_back_to_username_without_display_name(self):
+        UserProfile.objects.filter(user=self.student).update(display_name="")
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertContains(
+            response, f"<h1>Welcome, {self.student.username}!</h1>", html=True
+        )
+
+    def test_dashboard_logout_form_ends_student_session(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.student)
+        dashboard_url = reverse("student_dashboard")
+        logout_url = reverse("logout")
+        response = client.get(dashboard_url)
+        csrf_token = response.context["csrf_token"]
+        form = f"""
+            <form method="post" action="{logout_url}">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{csrf_token}">
+                <button type="submit" class="btn btn-primary">Log out</button>
+            </form>
+        """
+        self.assertContains(response, form, html=True)
+
+        response = client.post(logout_url, {"csrfmiddlewaretoken": csrf_token})
+        self.assertRedirects(response, reverse("landing"))
+        self.assertNotIn("_auth_user_id", client.session)
+        login_url = reverse("student_login")
+        self.assertRedirects(client.get(dashboard_url), f"{login_url}?next={dashboard_url}")
+
+    def test_student_returns_to_dashboard_after_logging_in(self):
+        password = "dashboard-test-password"
+        self.student.set_password(password)
+        self.student.save(update_fields=["password"])
+        dashboard_url = reverse("student_dashboard")
+        login_url = reverse("student_login")
+
+        redirect = self.client.get(dashboard_url)
+        self.assertRedirects(redirect, f"{login_url}?next={dashboard_url}")
+        login_page = self.client.get(redirect.url)
+        self.assertContains(
+            login_page, f'<input type="hidden" name="next" value="{dashboard_url}">',
+            html=True,
+        )
+
+        response = self.client.post(
+            login_url,
+            {"username": self.student.username, "password": password, "next": dashboard_url},
+            follow=True,
+        )
+        self.assertRedirects(response, dashboard_url)
+        self.assertTemplateUsed(response, "accounts/student_dashboard.html")
+
+    def test_invalid_profile_role_cannot_access_student_dashboard(self):
+        UserProfile.objects.filter(user=self.student).update(role="invalid")
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_dashboard_ignores_another_students_id(self):
+        other_student = get_user_model().objects.create_user(
+            username="other_dashboard_student",
+            email="other-student@example.com",
+        )
+        UserProfile.objects.create(
+            user=other_student,
+            role=UserProfile.Role.STUDENT,
+            display_name="Another Student",
+        )
+        self.client.force_login(self.student)
+        response = self.client.get(
+            reverse("student_dashboard"), {"student_id": other_student.pk}
+        )
+
+        self.assertContains(response, "<h1>Welcome, Dashboard Student!</h1>", html=True)
+        self.assertNotContains(response, "Another Student")
+        self.assertNotContains(response, other_student.username)
+        self.assertNotContains(response, other_student.email)
 
 
 class LogoutTest(TestCase):
@@ -631,7 +750,7 @@ class SeedDemoAccountsTest(TestCase):
             reverse("student_login"),
             {"username": "demo_student", "password": "student_pass_123"}
         )
-        self.assertRedirects(response, reverse("landing"))
+        self.assertRedirects(response, reverse("student_dashboard"))
 
     def test_idempotent_repeated_execution(self):
         """Running the command twice does not create duplicate accounts."""
