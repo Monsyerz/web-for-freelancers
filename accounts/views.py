@@ -27,15 +27,20 @@ class StudentLoginView(LoginView):
     next_page = "landing"
 
 
+def _require_teacher(user):
+    try:
+        profile = user.profile
+    except UserProfile.DoesNotExist:
+        raise PermissionDenied("User profile not found.")
+    if profile.role != UserProfile.Role.TEACHER:
+        raise PermissionDenied("Only teachers can access this page.")
+    return profile
+
+
 @login_required(login_url="teacher_login")
 def teacher_dashboard(request):
     """Teacher dashboard view - requires TEACHER role."""
-    try:
-        profile = request.user.profile
-        if profile.role != UserProfile.Role.TEACHER:
-            raise PermissionDenied("Only teachers can access this page.")
-    except UserProfile.DoesNotExist:
-        raise PermissionDenied("User profile not found.")
+    profile = _require_teacher(request.user)
 
     upcoming_lessons = Lesson.objects.filter(
         teacher=request.user,
@@ -47,3 +52,10 @@ def teacher_dashboard(request):
         "profile": profile,
         "upcoming_lessons": upcoming_lessons
     })
+
+
+@login_required(login_url="teacher_login")
+def teacher_placeholder(request, template_name):
+    """Render a placeholder for a teacher dashboard section."""
+    _require_teacher(request.user)
+    return render(request, template_name)

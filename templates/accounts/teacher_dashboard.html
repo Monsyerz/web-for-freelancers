@@ -6,15 +6,28 @@
 <div class="dashboard-layout">
     <aside class="dashboard-sidebar">
         <nav class="sidebar-nav">
-            <a href="{% url 'teacher_dashboard' %}" class="sidebar-link active">Dashboard</a>
-            <a href="#" class="sidebar-link">Lessons</a>
-            <a href="#" class="sidebar-link">Students</a>
-            <a href="#" class="sidebar-link">Homework</a>
-            <a href="#" class="sidebar-link">Notes</a>
+            {% with current_page=request.resolver_match.url_name %}
+            <a href="{% url 'teacher_dashboard' %}"
+               class="sidebar-link{% if current_page == 'teacher_dashboard' %} active{% endif %}"
+               {% if current_page == 'teacher_dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+            <a href="{% url 'teacher_lessons' %}"
+               class="sidebar-link{% if current_page == 'teacher_lessons' %} active{% endif %}"
+               {% if current_page == 'teacher_lessons' %}aria-current="page"{% endif %}>Lessons</a>
+            <a href="{% url 'teacher_students' %}"
+               class="sidebar-link{% if current_page == 'teacher_students' %} active{% endif %}"
+               {% if current_page == 'teacher_students' %}aria-current="page"{% endif %}>Students</a>
+            <a href="{% url 'teacher_homework' %}"
+               class="sidebar-link{% if current_page == 'teacher_homework' %} active{% endif %}"
+               {% if current_page == 'teacher_homework' %}aria-current="page"{% endif %}>Homework</a>
+            <a href="{% url 'teacher_notes' %}"
+               class="sidebar-link{% if current_page == 'teacher_notes' %} active{% endif %}"
+               {% if current_page == 'teacher_notes' %}aria-current="page"{% endif %}>Notes</a>
+            {% endwith %}
         </nav>
     </aside>
 
     <div class="dashboard-main">
+        {% block dashboard_main %}
         <div class="dashboard-welcome">
             <h1>Welcome, {{ profile.display_name|default:user.username }}!</h1>
             <p>This is your teacher dashboard.</p>
@@ -61,6 +74,7 @@
                 </table>
             </div>
         </div>
+        {% endblock %}
     </div>
 </div>
 {% endblock %}

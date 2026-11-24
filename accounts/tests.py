@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from io import StringIO
@@ -508,6 +508,67 @@ class TeacherDashboardTest(TestCase):
         self.client.login(username="no_profile_user", password="nopass123")
         response = self.client.get(reverse("teacher_dashboard"))
         self.assertEqual(response.status_code, 403)
+
+    placeholder_pages = (
+        ("teacher_lessons", "Lessons"),
+        ("teacher_students", "Students"),
+        ("teacher_homework", "Homework"),
+        ("teacher_notes", "Notes"),
+    )
+
+    def test_placeholder_routes(self):
+        for name, title in self.placeholder_pages:
+            with self.subTest(page=name):
+                url = f"/accounts/teacher/{title.lower()}/"
+                self.assertEqual(reverse(name), url)
+                self.assertEqual(resolve(url).url_name, name)
+
+    def test_teacher_can_access_placeholder_pages(self):
+        self.client.force_login(self.teacher)
+        for name, title in self.placeholder_pages:
+            with self.subTest(page=name):
+                response = self.client.get(reverse(name))
+                self.assertTemplateUsed(response, f"accounts/{name}.html")
+                self.assertContains(response, f"<h1>{title}</h1>", html=True)
+                self.assertContains(response, "Under Construction")
+
+    def test_anonymous_user_redirected_from_placeholder_pages(self):
+        login_url = reverse("teacher_login")
+        for name, _ in self.placeholder_pages:
+            with self.subTest(page=name):
+                url = reverse(name)
+                response = self.client.get(url)
+                self.assertRedirects(response, f"{login_url}?next={url}")
+
+    def test_student_cannot_access_placeholder_pages(self):
+        self.client.force_login(self.student)
+        for name, _ in self.placeholder_pages:
+            with self.subTest(page=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 403)
+
+    def test_user_without_profile_cannot_access_placeholder_pages(self):
+        user = get_user_model().objects.create_user(username="no_profile")
+        self.client.force_login(user)
+        for name, _ in self.placeholder_pages:
+            with self.subTest(page=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 403)
+
+    def test_teacher_sidebar_navigation(self):
+        self.client.force_login(self.teacher)
+        sidebar_pages = (("teacher_dashboard", "Dashboard"), *self.placeholder_pages)
+        for current_name, _ in sidebar_pages:
+            with self.subTest(page=current_name):
+                response = self.client.get(reverse(current_name))
+                for name, title in sidebar_pages:
+                    url = reverse(name)
+                    attributes = 'class="sidebar-link"'
+                    if name == current_name:
+                        attributes = 'class="sidebar-link active" aria-current="page"'
+                    self.assertContains(
+                        response, f'<a href="{url}" {attributes}>{title}</a>', html=True
+                    )
 
 
 class SeedDemoAccountsTest(TestCase):
