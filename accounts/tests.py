@@ -887,3 +887,40 @@ class TeacherDashboardLessonTest(TestCase):
 
         lessons = response.context["upcoming_lessons"]
         self.assertNotIn(other_lesson, lessons)
+
+    def test_meeting_url_displayed(self):
+        """A lesson with meeting_url displays a Join Meeting link with the correct href."""
+        now = timezone.now()
+        lesson_with_meeting = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="Math",
+            scheduled_at=now + timezone.timedelta(days=1),
+            duration_minutes=60,
+            meeting_url="https://example.com/meeting"
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        self.assertContains(response, 'href="https://example.com/meeting"')
+        self.assertContains(response, 'target="_blank"')
+        self.assertContains(response, 'rel="noopener noreferrer"')
+        self.assertContains(response, 'Join Meeting')
+
+    def test_no_meeting_url_displayed(self):
+        """A lesson without meeting_url displays Not provided."""
+        now = timezone.now()
+        lesson_without_meeting = Lesson.objects.create(
+            teacher=self.teacher,
+            student=self.student1,
+            topic="Math",
+            scheduled_at=now + timezone.timedelta(days=1),
+            duration_minutes=60,
+            meeting_url=""
+        )
+
+        self.client.login(username="teacher_user", password="teacherpass123")
+        response = self.client.get(reverse("teacher_dashboard"))
+
+        self.assertContains(response, 'Not provided')

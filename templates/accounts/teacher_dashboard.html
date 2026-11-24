@@ -30,6 +30,7 @@
                             <th>Lesson Topic</th>
                             <th>Date & Time</th>
                             <th>Duration (min)</th>
+                            <th scope="col">Meeting</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -39,10 +40,21 @@
                                 <td>{{ lesson.topic }}</td>
                                 <td>{{ lesson.scheduled_at|date:"Y-m-d H:i" }}</td>
                                 <td>{{ lesson.duration_minutes }}</td>
+                                <td>
+                                    {% if lesson.meeting_url %}
+                                        <a href="{{ lesson.meeting_url }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+                                            Join Meeting
+                                        </a>
+                                    {% else %}
+                                        Not provided
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="4">No upcoming lessons scheduled.</td>
+                                <td colspan="5">No upcoming lessons scheduled.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
