@@ -103,6 +103,8 @@ These features must not be implemented until explicitly approved.
 
 Manually verify the complete Teacher and Student flows against the approved MVP acceptance criteria.
 
+The November 25, 2026 results and outstanding checks are recorded in [ACCEPTANCE_TESTING.md](ACCEPTANCE_TESTING.md). Proposed v0.2 improvements are listed in [BACKLOG.md](BACKLOG.md). TASK-030 remains unchecked until all acceptance criteria are confirmed and the developer approves completion.
+
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 
 ## Definition of Done
