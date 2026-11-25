@@ -49,11 +49,11 @@ Each login button redirects to the appropriate login page.
 
 ## 5. Authentication
 
-- Implement real Django authentication.
-- Support Teacher and Student roles.
-- Provide separate login pages.
-- Redirect users to their role-specific dashboards.
-- Prevent users from accessing pages restricted to other roles.
+- Django session authentication supports Teacher and Student roles.
+- Teachers sign in at `/accounts/teacher/login/` and default to `/accounts/teacher/dashboard/`.
+- Students sign in at `/accounts/student/login/` and default to `/accounts/student/dashboard/`.
+- Login forms and protected views enforce the required role.
+- Both dashboards log out via a CSRF-protected POST to `/accounts/logout/` and return to the landing page.
 - Use fictional accounts for local development.
 
 Public registration is not included in version 0.1.
@@ -75,24 +75,23 @@ A sidebar on the left and a main content area on the right.
 
 ### Dashboard Content
 
-Display a table of scheduled lessons.
-
-Required columns:
+The dashboard shows the signed-in teacher's upcoming lessons in chronological order.
 
 | Field | Description |
 |---|---|
-| Student | Student's full name |
-| Lesson | Planned lesson topic |
-| Date & Time | Scheduled meeting |
-| Meeting Link | URL to an existing Microsoft Teams meeting |
+| Student | Student's profile display name, falling back to username |
+| Lesson Topic | Planned lesson topic |
+| Date & Time | Scheduled meeting time |
+| Duration (min) | Lesson duration in minutes |
+| Meeting | Link to the stored URL, or “Not provided” when empty |
 
-Meeting links are stored as regular URLs.
+Existing Microsoft Teams meeting links can be stored as optional URLs.
 
 No Microsoft Teams API integration.
 
 ### Additional Pages
 
-Lessons, Students, Homework, and Notes must have accessible placeholder pages in v0.1.
+Lessons, Students, Homework, and Notes are teacher-only placeholder pages linked from the sidebar.
 
 Their full functionality will be designed after user research.
 
@@ -100,7 +99,7 @@ Their full functionality will be designed after user research.
 
 After successful login, students access a separate dashboard.
 
-Version 0.1 requires only a basic student dashboard with a welcome message and working logout.
+The version 0.1 student dashboard shows a welcome message using the profile display name or username and provides a logout button.
 
 Additional student features are not part of the initial milestone.
 
@@ -111,9 +110,8 @@ The initial database must support:
 - Users
 - User roles
 - Teacher–student relationships
-- Scheduled lessons
-- Lesson topics
-- Meeting URLs
+- Scheduled lessons with topics and durations
+- Optional meeting URLs
 
 In version 0.1, a student can be associated with at most one teacher and may temporarily have no teacher assigned.
 

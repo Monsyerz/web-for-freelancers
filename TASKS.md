@@ -2,7 +2,7 @@
 
 **Version:** 0.1  
 **Status:** In Progress
-**Current Phase:** Authentication
+**Current Phase:** MVP Completion
 
 ## Agent Execution Rules
 
@@ -76,8 +76,8 @@
 
 ## Phase 6 — MVP Completion
 
-- [ ] **TASK-028:** Update README with installation and setup instructions.
-- [ ] **TASK-029:** Review documentation for accuracy.
+- [x] **TASK-028:** Update README with installation and setup instructions.
+- [x] **TASK-029:** Review documentation for accuracy.
 - [ ] **TASK-030:** Perform manual acceptance testing of the complete Teacher and Student flows.
 
 **Acceptance criteria:** The local demo works without paid APIs or external services and can be demonstrated to a real user using fictional data.
@@ -99,9 +99,11 @@ These features must not be implemented until explicitly approved.
 
 ## Current Task
 
-**TASK-028 — Update README with installation and setup instructions.**
+**TASK-030 — Perform manual acceptance testing of the complete Teacher and Student flows.**
 
-Review the existing README and update installation and setup instructions according to the approved project specification.
+Manually verify the complete Teacher and Student flows against the approved MVP acceptance criteria.
+
+The November 25, 2026 results and outstanding checks are recorded in [ACCEPTANCE_TESTING.md](ACCEPTANCE_TESTING.md). Proposed v0.2 improvements are listed in [BACKLOG.md](BACKLOG.md). TASK-030 remains unchecked until all acceptance criteria are confirmed and the developer approves completion.
 
 Implement only the current task. Follow the Agent Execution Rules and Definition of Done.
 

@@ -1,7 +1,8 @@
 # Web for Freelancers — Architecture
 
 **Version:** 0.1  
-**Status:** Proposed  
+**Status:** Implemented local prototype
+
 **Architecture:** Django Monolith
 
 ## 1. Architecture Overview
@@ -23,7 +24,7 @@ No separate frontend server, microservices, or REST API are required for version
 | Layer | Technology |
 |---|---|
 | Language | Python |
-| Backend | Django |
+| Backend | Django 5.2.19 LTS |
 | Database | SQLite |
 | Frontend | Django Templates, HTML, CSS |
 | Interactivity | Vanilla JavaScript when necessary |
@@ -58,31 +59,26 @@ web-for-freelancers/
 │   ├── views.py
 │   ├── forms.py
 │   ├── urls.py
+│   ├── migrations/
+│   ├── management/commands/seed_demo_accounts.py
 │   └── tests.py
 │
 ├── lessons/
 │   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   └── tests.py
-│
-├── dashboard/
-│   ├── views.py
-│   ├── urls.py
+│   ├── migrations/
+│   ├── management/commands/seed_demo_lessons.py
 │   └── tests.py
 │
 ├── templates/
 │   ├── base.html
 │   ├── landing.html
-│   ├── accounts/
-│   └── dashboard/
+│   └── accounts/
 │
 └── static/
-    ├── css/
-    └── js/
+    └── css/style.css
 ```
 
-This is the intended structure, not a requirement to create every file immediately.
+The tree shows the main application files. `accounts` owns authentication and both dashboards. `lessons` owns lesson and assignment data.
 
 ## 4. User Roles
 
@@ -90,58 +86,55 @@ The system supports two roles:
 
 **Teacher**
 - Access teacher dashboard.
-- View assigned students.
-- View their own scheduled lessons.
-- Access teacher navigation pages.
+- View their own upcoming lessons and the student shown for each lesson.
+- Access the Lessons, Students, Homework, and Notes placeholder pages.
 
 **Student**
-- Access student dashboard.
+- Access the welcome dashboard and log out.
 - Cannot access teacher-only pages.
 - Cannot access another student's private records.
 
 Use Django's built-in User model and a related profile containing the user role.
 
-## 5. Initial Data Models
+## 5. Data Models
 
 ### UserProfile
-- user: OneToOne relationship with Django User
-- role: Teacher / Student
-- display_name
+- `user` is a `OneToOneField` to Django User, with reverse accessor `profile`.
+- `role` is a `CharField` with a 10-character maximum and `teacher` and `student` choices.
+- `display_name` is a `CharField` with a 100-character maximum and allows blanks.
 
 ### TeacherStudent
-- teacher: ForeignKey to User
-- student: ForeignKey to User
+- `teacher` is a `ForeignKey` to User, with reverse accessor `taught_students`.
+- `student` is a `OneToOneField` to User, with reverse accessor `assigned_teacher`.
 
-For v0.1, a student is associated with one teacher. Enforce this through a database uniqueness constraint on the student.
+A teacher can have many students. A student can have zero or one teacher assignment. The one-to-one field enforces uniqueness in the database. Model validation requires distinct users with the corresponding roles.
 
 ### Lesson
-- teacher: ForeignKey to User
-- student: ForeignKey to User
-- topic: CharField
-- scheduled_at: DateTimeField
-- duration_minutes: PositiveIntegerField
-- meeting_url: URLField, optional
+- `teacher` and `student` are `ForeignKey` fields to User, with reverse accessors `taught_lessons` and `student_lessons`.
+- `topic` is a `CharField` with a 200-character maximum.
+- `scheduled_at` is a `DateTimeField` and determines the default ordering.
+- `duration_minutes` is a `PositiveIntegerField`.
+- `meeting_url` is a `URLField` that allows blank and null values.
 
-Validate that each lesson's student belongs to the specified teacher.
+Model validation requires a nonblank topic, a duration greater than zero, the corresponding user roles, and an existing assignment between the student and the teacher. All user relationships listed here cascade on deletion.
 
 Future models for homework, notes and invitations are not implemented yet.
 
 ## 6. Routes
 
-| URL | Purpose |
-|---|---|
-| `/` | Teacher / Student selection |
-| `/accounts/teacher/login/` | Teacher login |
-| `/accounts/student/login/` | Student login |
-| `/accounts/logout/` | Logout (POST) |
-| `/dashboard/teacher/` | Teacher dashboard |
-| `/dashboard/student/` | Student dashboard |
-| `/lessons/` | Teacher lessons |
-| `/students/` | Teacher student list |
-| `/homework/` | Placeholder |
-| `/notes/` | Placeholder |
-
-Final route names should be consistent and use Django's named URL patterns.
+| URL | Django route name | Purpose |
+|---|---|---|
+| `/` | `landing` | Teacher / Student selection |
+| `/accounts/teacher/login/` | `teacher_login` | Teacher login |
+| `/accounts/student/login/` | `student_login` | Student login |
+| `/accounts/logout/` | `logout` | Logout via POST, then return to the landing page |
+| `/accounts/teacher/dashboard/` | `teacher_dashboard` | Teacher dashboard |
+| `/accounts/student/dashboard/` | `student_dashboard` | Student dashboard |
+| `/accounts/teacher/lessons/` | `teacher_lessons` | Lessons placeholder |
+| `/accounts/teacher/students/` | `teacher_students` | Students placeholder |
+| `/accounts/teacher/homework/` | `teacher_homework` | Homework placeholder |
+| `/accounts/teacher/notes/` | `teacher_notes` | Notes placeholder |
+| `/admin/` | `admin:index` | Django admin |
 
 ## 7. Authentication and Security
 
@@ -167,9 +160,9 @@ Use a shared base template for consistency.
 - Separate Teacher and Student login screens.
 
 **Teacher Dashboard**
-- Persistent sidebar.
-- Main lesson table.
-- Student, topic, date/time and Teams link.
+- Shared sidebar across the dashboard and teacher placeholders.
+- Upcoming lessons table filtered to the signed-in teacher and sorted by scheduled time.
+- Student display name or username, topic, date and time, duration, and an optional stored meeting link.
 
 **Student Dashboard**
 - Basic welcome view and logout.
